@@ -1,0 +1,6 @@
+#!/bin/bash
+# get type 'wifi' status 'connected' device name
+WIFI_IFACE=$(nmcli -t -f DEVICE,TYPE device | grep ":wifi$" | cut -d: -f1)
+iw dev $WIFI_IFACE link
+
+stty echo && nmcli d && ping google.com

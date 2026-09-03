@@ -1,0 +1,15 @@
+#!/bin/bash
+# sed -i 's/pwa-run/pwa run/g' *.desktop
+
+SOURCE=$1
+REPLACE=$2
+TARGET=$3
+
+if [ -z "${SOURCE}" ] || [ -z "${REPLACE}" ] || [ -z "${TARGET}" ] ; then
+    echo "use: 123gg 456bb /test/ok.log"
+    exit 0
+else
+    sed -i "s/${SOURCE}/${REPLACE}/g" ${TARGET}
+    echo "ok"
+    exit 0
+fi

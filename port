@@ -1,0 +1,5 @@
+#port
+PORT=$1
+netstat -anp|grep ${PORT}
+lsof -i :${PORT}
+

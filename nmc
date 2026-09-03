@@ -1,0 +1,14 @@
+#name='your name'
+# nmcli connection show 
+name='HONOR'
+
+nmcli connection modify "$name" wifi.band a
+nmcli connection modify "$name" 802-11-wireless.channel-width 0 #80mhz
+nmcli connection modify "$name" 802-11-wireless.powersave 2
+
+WIFI_IFACE=$(nmcli -t -f DEVICE,TYPE device | grep ":wifi$" | cut -d: -f1)
+
+iw dev $WIFI_IFACE set power_save off
+nmcli connection down "$name"
+nmcli connection up "$name"
+iw dev $WIFI_IFACE link

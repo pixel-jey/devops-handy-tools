@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# 1. 打印当前时间
+date '+%Y-%m-%d %H:%M:%S'
+
+# 2. 智能解析无序参数
+sort_field="-pmem"   # 默认按内存排序
+search_keyword=""    # 过滤关键字
+display_limit=0      # 默认不限制数量（由关键字或默认值控制）
+
+# 遍历所有传入的参数
+for arg in "$@"; do
+    if [ "$arg" = "-c" ]; then
+        sort_field="-pcpu" # 只要有 -c，就切换为按 CPU 排序
+    elif [[ "$arg" =~ ^[0-9]+$ ]]; then
+        display_limit=$arg # 如果是数字，赋值给显示行数
+    else
+        search_keyword=$arg # 如果是字符串，赋值给过滤关键字
+    fi
+done
+
+# 如果既没有输入数字，也没有输入关键字，则默认显示 4 行
+if [ -z "$search_keyword" ] && [ "$display_limit" -eq 0 ]; then
+    display_limit=4
+fi
+
+# 3. 打印模式提示语与表头
+if [ "$sort_field" = "-pcpu" ]; then
+    echo "=== Sorted by %CPU ==="
+else
+    echo "=== Sorted by %MEM ==="
+fi
+printf "%-10s %-6s %-6s %-10s %-10s %-s\n" "PID" "%CPU" "%MEM" "VSZ(MB)" "RSS(MB)" "COMMAND"
+
+# 4. 核心逻辑：获取数据并使用 awk 过滤与高亮
+ps -eo pid,pcpu,pmem,vsz,rss,args --sort="$sort_field" | awk -v lim="$display_limit" -v search="$search_keyword" '
+BEGIN { IGNORECASE = 1 }
+
+# 排除 awk 自身、当前运行的 mem.sh 脚本，防止干扰结果
+$0 ~ /awk -v lim=/ || $0 ~ /mem\.sh/ { next }
+
+# 场景 A & B：限制行数输出
+lim > 0 {
+    if (NR > 1 && NR <= lim + 1) {
+        printf "%-10s %-6s %-6s %-10.1f %-10.1f %-s\n", $1, $2, $3, $4/1024, $5/1024, $6
+    }
+}
+
+# 场景 C：关键字检索与红色粗体高亮
+lim == 0 {
+    if (NR > 1 && $0 ~ search) {
+        printf "%-10s %-6s %-6s %-10.1f %-10.1f ", $1, $2, $3, $4/1024, $5/1024
+        
+        # 拼接完整的命令和参数
+        cmd = ""
+        for(i=6; i<=NF; i++) {
+            cmd = cmd (i==6 ? "" : " ") $i
+        }
+        
+        # 保持原大小写高亮关键字
+        cmd_highlighted = gensub("(" search ")", "\033[1;31m\\1\033[0m", "g", cmd)
+        print cmd_highlighted
+    }
+}'
+
+echo "----------------------------------------------------"
+
+# 5. 显示实时内存状态
+free -h
+

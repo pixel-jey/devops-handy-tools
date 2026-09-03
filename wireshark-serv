@@ -1,0 +1,47 @@
+#!/bin/bash
+SERV_OPTION=$1
+
+if [ "${SERV_OPTION}" == "cfg" ];then
+  sudo usermod -a -G wireshark $USER
+
+  groups $USER
+  id $USER
+  grep "wireshark" /etc/group
+
+  dumpcap -D
+  exit 0
+elif [ "${SERV_OPTION}" == "run" ];then
+  WIFI_IFACE=$(nmcli -t -f DEVICE,TYPE device | grep ":wifi$" | cut -d: -f1)
+PCAP_FILE=~/Downloads/http.pcap
+
+  echo $PCAP_FILE
+
+  sudo tcpdump -i $WIFI_IFACE -nn -w $PCAP_FILE
+
+  ls -al --color=auto $PCAP_FILE
+
+  du -sh $PCAP_FILE
+  exit 0
+elif [ "${SERV_OPTION}" == "start" ];then
+  TLS="$HOME/.chrome-ssl.log"
+
+  touch "$TLS"
+  chmod 644 "$TLS"
+
+  kills chrome
+  sleep 0.5
+
+  export SSLKEYLOGFILE="$TLS"
+  nohup /usr/bin/google-chrome-stable --ssl-key-log-file="$TLS" > /dev/null 2>&1 &
+
+  disown
+	
+  ps aux|grep chrome-ssl --color=auto
+
+  echo "Chrome is started"
+  echo "The key written to: $TLS"
+  exit 0
+else 
+  echo  -e 'use: cfg|run|start'		
+  exit 1
+fi
